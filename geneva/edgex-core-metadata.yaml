@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-core-metadata
+  name: edgex-core-metadata
+spec:
+  ports:
+  - name: "48081"
+    port: 48081
+    targetPort: 48081
+    nodePort: 48081
+  selector:
+    org.edgexfoundry.service: edgex-core-metadata
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-core-metadata
+  name: edgex-core-metadata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-core-metadata
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-core-metadata
+    spec:
+      containers:
+      - name: edgex-core-metadata
+        image: edgexfoundry/docker-core-metadata-go:1.2.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 48081
+        envFrom:
+        - configMapRef:
+            name: edgex-common-variables
+        env:
+        - name: Service_Host
+          value: edgex-core-metadata
+        - name: Notifications_Sender
+          value: edgex-core-metadata
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48081
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48081
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+      hostname: edgex-core-metadata
+      restartPolicy: Always

@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-device-rest
+  name: edgex-device-rest
+spec:
+  ports:
+  - name: "49986"
+    port: 49986
+    targetPort: 49986
+    nodePort: 49986
+  selector:
+    org.edgexfoundry.service: edgex-device-rest
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-device-virtual
+  name: edgex-device-virtual
+spec:
+  ports:
+  - name: "49990"
+    port: 49990
+    targetPort: 49990
+    nodePort: 49990
+  selector:
+    org.edgexfoundry.service: edgex-device-virtual
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-device-rest
+  name: edgex-device-rest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-device-rest
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-device-rest
+    spec:
+      containers:
+      - name: edgex-device-rest
+        image: edgexfoundry/docker-device-rest-go:1.1.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 49986
+        env:
+        - name: Service_Host
+          value: edgex-device-rest
+        envFrom:
+        - configMapRef:
+            name: edgex-common-variables
+        livenessProbe:
+          tcpSocket:
+            port: 49986
+          periodSeconds: 5
+        readinessProbe:
+          tcpSocket:
+            port: 49986
+          periodSeconds: 5
+      hostname: edgex-device-rest
+      restartPolicy: Always
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-device-virtual
+  name: edgex-device-virtual
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-device-virtual
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-device-virtual
+    spec:
+      containers:
+      - name: edgex-device-virtual
+        image: edgexfoundry/docker-device-virtual-go:1.2.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 49990
+        env:
+        - name: Service_Host
+          value: edgex-device-virtual
+        envFrom:
+        - configMapRef:
+            name: edgex-common-variables
+        livenessProbe:
+          tcpSocket:
+            port: 49990
+          periodSeconds: 5
+        readinessProbe:
+          tcpSocket:
+            port: 49990
+          periodSeconds: 5
+      hostname: edgex-device-virtual
+      restartPolicy: Always

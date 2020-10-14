@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-ui
+  name: edgex-ui
+spec:
+  ports:
+  - name: "4000"
+    port: 4000
+    targetPort: 4000
+    nodePort: 4000
+  selector:
+    org.edgexfoundry.service: edgex-ui
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-ui
+  name: edgex-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-ui
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-ui
+    spec:
+      containers:
+      - name: edgex-ui
+        image: edgexfoundry/docker-edgex-ui-go:1.0.0.cn
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 4000
+        env:
+        - name: Clients_CoreData_Host
+          value: edgex-core-data
+        - name: Clients_Metadata_Host
+          value: edgex-core-metadata
+        - name: Clients_CoreCommand_Host
+          value: edgex-core-command
+        - name: Clients_Notification_Host
+          value: edgex-support-notifications
+        - name: Clients_Scheduler_Host
+          value: edgex-support-scheduler
+        - name: Clients_RuleEngine_Host
+          value: edgex-support-rulesengine
+        - name: Registry_Host
+          value: edgex-core-consul
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 4000
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 4000
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+      hostname: edgex-ui
+      restartPolicy: Always
+status: {}

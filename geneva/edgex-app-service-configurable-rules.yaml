@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-app-service-configurable-rules
+  name: edgex-app-service-configurable-rules
+spec:
+  ports:
+  - name: "48100"
+    port: 48100
+    targetPort: 48100
+    nodePort: 48100
+  selector:
+    org.edgexfoundry.service: edgex-app-service-configurable-rules
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-app-service-configurable-rules
+  name: edgex-app-service-configurable-rules
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-app-service-configurable-rules
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-app-service-configurable-rules
+    spec:
+      containers:
+      - name: edgex-app-service-configurable-rules
+        image: edgexfoundry/docker-app-service-configurable:1.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 48100
+        envFrom:
+        - configMapRef:
+            name: edgex-common-variables
+        env:
+        - name: edgex_profile
+          value: "rules-engine"
+        - name: Service_Host
+          value: edgex-app-service-configurable-rules
+        - name: Service_Port
+          value: "48100"
+        - name: MessageBus_SubscribeHost_Host
+          value: edgex-core-data
+        - name: Binding_PublishTopic
+          value: "events"
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48100
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48100
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+      hostname: edgex-app-service-configurable-rules
+      restartPolicy: Always

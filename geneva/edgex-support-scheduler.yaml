@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-support-scheduler
+  name: edgex-support-scheduler
+spec:
+  ports:
+  - name: "48085"
+    port: 48085
+    targetPort: 48085
+    nodePort: 48085
+  selector:
+    org.edgexfoundry.service: edgex-support-scheduler
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-support-scheduler
+  name: edgex-support-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-support-scheduler
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-support-scheduler
+    spec:
+      containers:
+      - name: edgex-support-scheduler
+        image: edgexfoundry/docker-support-scheduler-go:1.2.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 48085
+        envFrom:
+        - configMapRef:
+            name: edgex-common-variables
+        env:
+        - name: Service_Host
+          value: edgex-support-scheduler
+        - name: IntervalActions_ScrubPushed_Host
+          value: edgex-core-data
+        - name: IntervalActions_ScrubAged_Host
+          value: edgex-core-data
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48085
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48085
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+      hostname: edgex-support-scheduler
+      restartPolicy: Always

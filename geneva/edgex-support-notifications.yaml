@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-support-notifications
+  name: edgex-support-notifications
+spec:
+  ports:
+  - name: "48060"
+    port: 48060
+    targetPort: 48060
+    nodePort: 48060
+  selector:
+    org.edgexfoundry.service: edgex-support-notifications
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    org.edgexfoundry.service: edgex-support-notifications
+  name: edgex-support-notifications
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      org.edgexfoundry.service: edgex-support-notifications
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        org.edgexfoundry.service: edgex-support-notifications
+    spec:
+      containers:
+      - name: edgex-support-notifications
+        image: edgexfoundry/docker-support-notifications-go:1.2.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 48060
+        env:
+        - name: Service_Host
+          value: edgex-support-notifications
+        envFrom:
+        - configMapRef:
+            name: edgex-common-variables
+        readinessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48060
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/v1/ping
+            port: 48060
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 3
+      hostname: edgex-support-notifications
+      restartPolicy: Always
